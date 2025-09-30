@@ -56,6 +56,7 @@
             cp /tmp/claude.json $HOME/.claude.json
           fi
           alias claude="${claudeAlias}"
+          claude
         '';
 
         customBash = pkgs.writeShellScript "custom-bash" ''
