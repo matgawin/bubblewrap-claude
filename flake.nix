@@ -98,6 +98,7 @@
             --dir /run \
             --dir /etc/ssl \
             --dir /etc/ssl/certs \
+            --ro-bind /etc/resolv.conf /etc/resolv.conf \
             --ro-bind ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-bundle.crt \
             --symlink /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt \
             --ro-bind /nix /nix \
