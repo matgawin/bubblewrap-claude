@@ -111,6 +111,7 @@
             --setenv TMPDIR /tmp \
             --setenv USER $USER \
             --setenv PATH "${pkgs.lib.makeBinPath sandboxTools}" \
+            --setenv SHELL "${pkgs.bash}/bin/bash" \
             --setenv CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC "1" \
             --setenv DISABLE_AUTOUPDATER "1" \
             --setenv DISABLE_ERROR_REPORTING "1" \
