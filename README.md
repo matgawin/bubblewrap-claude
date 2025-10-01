@@ -52,7 +52,6 @@ The sandbox environment includes:
 
 - **Core tools**: bash, coreutils, git, jujutsu
 - **Text processing**: ripgrep, fd, jq, yq, bat
-- **Network utilities**: curl, wget, dnsutils
 - **File operations**: tree, rsync, zip/unzip
 - **Editor**: vim
 

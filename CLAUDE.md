@@ -44,7 +44,6 @@ claude
 # - Text processing: ripgrep, fd, jq, yq
 # - File operations: tree, rsync, zip/unzip
 # - Editor: vim
-# - Network: curl, wget, dnsutils
 ```
 
 ## Security Model
