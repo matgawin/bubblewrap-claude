@@ -10,38 +10,27 @@
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = ["x86_64-linux" "aarch64-linux"];
 
-      perSystem = {
-        self',
-        system,
-        ...
-      }: let
+      perSystem = {system, ...}: let
         pkgs = import inputs.nixpkgs {
           inherit system;
           config.allowUnfree = true;
         };
 
         sandboxLib = import ./lib {inherit pkgs;};
-
-        mkProfileSandbox = profileName: packages:
-          sandboxLib.mkSandbox {
-            inherit packages;
-            name = "claude-sandbox-${profileName}";
-          };
-
         profilePackages =
-          pkgs.lib.mapAttrs' (profileName: packages: {
+          pkgs.lib.mapAttrs' (profileName: packages: rec {
             name = "claude-sandbox-${profileName}";
-            value = mkProfileSandbox profileName packages;
+            value = sandboxLib.mkSandbox {inherit name packages;};
           })
           sandboxLib.profiles;
       in {
         packages =
           profilePackages
-          // {
+          // rec {
             claude-sandbox = sandboxLib.mkSandbox {
               packages = sandboxLib.profiles.base;
             };
-            default = self'.packages.claude-sandbox;
+            default = claude-sandbox;
           };
 
         devShells.default = sandboxLib.mkDevShell {};

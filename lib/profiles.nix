@@ -1,4 +1,4 @@
-{pkgs}: rec {
+{pkgs}: let
   base = with pkgs; [
     bash
     bun
@@ -29,7 +29,8 @@
     yq
     zip
   ];
-
+in {
+  inherit base;
   nix = with pkgs;
     [
       nix
