@@ -51,7 +51,8 @@
           zip
         ];
 
-        claudeAlias = "claude --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch";
+        systemPrompt = builtins.readFile ./sandbox-prompt.txt;
+        claudeAlias = "claude --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
         customBashProfile = pkgs.writeText "bash_profile" ''
           bun add --silent -g @anthropic-ai/claude-code
           export PATH="/home/$(whoami)/.bun/bin:$PATH"
