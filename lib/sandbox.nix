@@ -1,16 +1,13 @@
 {pkgs}: let
   systemPrompt = builtins.readFile ./sandbox-prompt.txt;
-  claudeAlias = "claude --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
+  claudeAlias = "claude -- --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
   customBashProfile = pkgs.writeText "bash_profile" ''
-    bun add --silent -g @anthropic-ai/claude-code
-    export PATH="/home/$(whoami)/.bun/bin:$PATH"
-
     if [ -f "/tmp/claude.json" ]; then
       cp /tmp/claude.json $HOME/.claude.json
     fi
 
-    alias claude="${claudeAlias}"
+    alias claude="bunx --silent --bun -p @anthropic-ai/claude-code ${claudeAlias}"
     claude
   '';
 
@@ -22,7 +19,6 @@
 
   sandboxTools = with pkgs; [
     bash
-    bat
     bun
     coreutils
     diffutils
@@ -35,8 +31,8 @@
     gnused
     gnutar
     gzip
-    jujutsu
     jq
+    jujutsu
     less
     man
     nodejs

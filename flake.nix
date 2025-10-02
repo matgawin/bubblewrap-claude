@@ -20,23 +20,40 @@
           config.allowUnfree = true;
         };
 
-        packages = import ./packages {inherit pkgs;};
-        inherit (packages) sandboxTools;
+        sandboxLib = import ./lib {inherit pkgs;};
+
+        mkProfileSandbox = profileName: extraPackages:
+          sandboxLib.mkSandbox {
+            inherit extraPackages;
+            name = "claude-sandbox-${profileName}";
+          };
+
+        profilePackages =
+          pkgs.lib.mapAttrs' (profileName: extraPackages: {
+            name = "claude-sandbox-${profileName}";
+            value = mkProfileSandbox profileName extraPackages;
+          })
+          sandboxLib.profiles;
       in {
-        packages = packages // {default = self'.packages.claude-sandbox;};
+        packages =
+          profilePackages
+          // {
+            claude-sandbox = sandboxLib.mkSandbox {};
+            default = self'.packages.claude-sandbox;
+          };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = [pkgs.bubblewrap] ++ sandboxTools;
-
-          shellHook = ''
-            echo "Bubblewrap sandbox environment loaded!"
-            echo "Available profiles: [ nix, go, python, rust, cpp ]"
-            echo ""
-            echo "Run 'nix run' or 'nix run .#claude-sandbox [directory]' to enter the isolated environment"
-            echo "  - 'nix run' uses current directory"
-            echo "  - 'nix run .#claude-sandbox-<profile> [directory]' to enter sandbox with specific profile"
-          '';
-        };
+        devShells.default = sandboxLib.mkDevShell {};
       };
+
+      flake.lib = let
+        forAllSystems = inputs.nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux"];
+      in
+        forAllSystems (system: let
+          pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        in
+          import ./lib {inherit pkgs;});
     };
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Nix flake that creates a secure bubblewrap sandbox environment specifically designed for running Claude Code. The project sets up an isolated environment and a curated set of development tools.
+This is a Nix flake that creates a secure bubblewrap sandbox environment specifically designed for running Claude Code. The project sets up an isolated environment and a curated set of development tools. The flake is designed to be easily imported and extended with custom packages in other projects.
 
 ## Architecture
 
@@ -14,9 +14,22 @@ The flake defines a sandboxed environment using:
 - **Claude Code**: Pre-installed and aliased with `--dangerously-skip-permissions`
 
 Key components:
-- `sandboxScript`: Main script that sets up the bubblewrap environment (flake.nix:73-128)
-- `sandboxTools`: Curated list of allowed tools in the sandbox (flake.nix:22-55)
-- `customBashProfile`: Configuration for the sandboxed shell environment (flake.nix:58-65)
+- `lib/sandbox.nix`: Core sandbox script generation and tool definitions
+- `lib/default.nix`: Extensible API functions (mkSandbox, mkDevShell, mkProfile)
+- `lib/profiles.nix`: Language-specific development profiles definitions
+- `flake.nix`: Main flake configuration and package exports
+- `sandboxTools`: Curated list of base tools available in all sandboxes
+
+## Extensible API
+
+The flake exports several functions for easy integration:
+
+### Core Functions
+- `mkSandbox { extraPackages, name }`: Create custom sandbox with additional packages
+- `mkDevShell { extraPackages, shellHook }`: Create extensible development shell
+- `mkProfile profileName extraPackages`: Create named profile sandbox
+- `mkHomeManagerSandbox { extraPackages, name }`: Helper for Home Manager integration
+- `profiles`: Access to predefined language-specific tool sets
 
 ## Commands
 
@@ -50,22 +63,15 @@ nix run .#claude-sandbox-python
 # Rust development
 nix run .#claude-sandbox-rust
 
-# Haskell development
-nix run .#claude-sandbox-haskell
-
-# Java development
-nix run .#claude-sandbox-java
-
 # C++ development
 nix run .#claude-sandbox-cpp
 ```
 
 Each profile includes language-specific tools:
+- **nix**: nix, alejandra
 - **go**: go, gopls, delve, golangci-lint, gotools
 - **python**: python3, pip, virtualenv, poetry, ruff, pyright
 - **rust**: rustc, cargo, rustfmt, clippy, rust-analyzer
-- **haskell**: ghc, cabal-install, haskell-language-server, stack
-- **java**: jdk, gradle, maven
 - **cpp**: gcc, clang, cmake, make, clang-tools
 
 ### Inside the Sandbox
@@ -78,6 +84,48 @@ claude
 # - Text processing: ripgrep, fd, jq, yq
 # - File operations: tree, rsync, zip/unzip
 # - Editor: vim
+```
+
+## Importing and Extending
+
+### Basic Import
+Add to your flake inputs:
+```nix
+{
+  inputs.bubblewrap-claude.url = "github:matgawin/bubblewrap-claude";
+
+  outputs = {nixpkgs, bubblewrap-claude, ...}: let
+    bwLib = bubblewrap-claude.lib.${system};
+  in {
+    packages.${system}.my-sandbox = bwLib.mkSandbox {
+      extraPackages = with pkgs; [ docker kubectl terraform ];
+      name = "my-project-sandbox";
+    };
+  };
+}
+```
+
+### Home Manager Integration
+```nix
+{ inputs, pkgs, ... }: {
+  home.packages = [
+    (inputs.bubblewrap-claude.lib.${pkgs.system}.mkSandbox {
+      extraPackages = with pkgs; [ docker kubectl terraform ];
+      name = "my-sandbox";
+    })
+  ];
+}
+```
+
+### Extended Development Shell
+```nix
+devShells.${system}.default = bwLib.mkDevShell {
+  extraPackages = with pkgs; [ docker kubectl terraform ];
+  shellHook = ''
+    echo "Custom development environment loaded!"
+    echo "Additional tools: docker, kubectl, terraform"
+  '';
+};
 ```
 
 ## Security Model
