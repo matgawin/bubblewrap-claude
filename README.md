@@ -15,6 +15,11 @@ nix run
 
 # Run sandbox in specific directory
 nix run .#claude-sandbox /path/to/project
+
+# Use language-specific profile
+nix run .#claude-sandbox-go        # Go development
+nix run .#claude-sandbox-python    # Python development
+nix run .#claude-sandbox-rust      # Rust development
 ```
 
 ## Home Manager Integration
@@ -46,7 +51,21 @@ Then run `claude-sandbox` from anywhere to start the sandboxed environment.
 - **Claude Code integration**: Pre-installed with `--dangerously-skip-permissions`
 - **Configuration persistence**: Host `~/.claude.json` automatically mounted if present
 
-## Architecture
+## Language Profiles
+
+Pre-configured toolchains available out of the box:
+
+| Profile | Command | Includes |
+|---------|---------|----------|
+| **Nix** | `nix run .#claude-sandbox-nix` | nix, alejandra |
+| **Go** | `nix run .#claude-sandbox-go` | go, gopls, delve, golangci-lint, gotools |
+| **Python** | `nix run .#claude-sandbox-python` | python3, pip, poetry, ruff, pyright |
+| **Rust** | `nix run .#claude-sandbox-rust` | rustc, cargo, rust-analyzer, clippy |
+| **Haskell** | `nix run .#claude-sandbox-haskell` | ghc, cabal, hls, stack |
+| **Java** | `nix run .#claude-sandbox-java` | jdk, gradle, maven |
+| **C++** | `nix run .#claude-sandbox-cpp` | gcc, clang, cmake, make |
+
+## Base Sandbox Tools
 
 The sandbox environment includes:
 

@@ -34,6 +34,40 @@ nix run
 nix run .#claude-sandbox [directory]
 ```
 
+### Language-Specific Profiles
+Pre-configured toolchains for common languages:
+
+```bash
+# Nix development
+nix run .#claude-sandbox-nix
+
+# Go development
+nix run .#claude-sandbox-go
+
+# Python development
+nix run .#claude-sandbox-python
+
+# Rust development
+nix run .#claude-sandbox-rust
+
+# Haskell development
+nix run .#claude-sandbox-haskell
+
+# Java development
+nix run .#claude-sandbox-java
+
+# C++ development
+nix run .#claude-sandbox-cpp
+```
+
+Each profile includes language-specific tools:
+- **go**: go, gopls, delve, golangci-lint, gotools
+- **python**: python3, pip, virtualenv, poetry, ruff, pyright
+- **rust**: rustc, cargo, rustfmt, clippy, rust-analyzer
+- **haskell**: ghc, cabal-install, haskell-language-server, stack
+- **java**: jdk, gradle, maven
+- **cpp**: gcc, clang, cmake, make, clang-tools
+
 ### Inside the Sandbox
 ```bash
 # Claude Code is aliased and ready to use
