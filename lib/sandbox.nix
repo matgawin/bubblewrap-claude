@@ -16,43 +16,8 @@
   '';
 
   apiUrl = "https://api.anthropic.com";
-
-  sandboxTools = with pkgs; [
-    bash
-    bun
-    coreutils
-    diffutils
-    fd
-    file
-    findutils
-    gawk
-    git
-    gnugrep
-    gnused
-    gnutar
-    gzip
-    jq
-    jujutsu
-    less
-    man
-    nodejs
-    patch
-    procps
-    ripgrep
-    rsync
-    tree
-    unzip
-    vim
-    which
-    yq
-    zip
-  ];
 in {
-  inherit sandboxTools;
-
-  makeSandboxScript = extraPackages: let
-    allTools = sandboxTools ++ extraPackages;
-  in
+  makeSandboxScript = packages:
     pkgs.writeShellScript "claude-sandbox" ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -101,7 +66,7 @@ in {
         --setenv HOME "/home/$USER" \
         --setenv TMPDIR /tmp \
         --setenv USER $USER \
-        --setenv PATH "${pkgs.lib.makeBinPath allTools}" \
+        --setenv PATH "${pkgs.lib.makeBinPath packages}" \
         --setenv SHELL "${pkgs.bash}/bin/bash" \
         --setenv CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC "1" \
         --setenv DISABLE_AUTOUPDATER "1" \

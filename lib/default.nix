@@ -1,14 +1,14 @@
 {pkgs}: let
   sandbox = import ./sandbox.nix {inherit pkgs;};
   profiles = import ./profiles.nix {inherit pkgs;};
-  inherit (sandbox) sandboxTools makeSandboxScript;
+  inherit (sandbox) makeSandboxScript;
 
   mkDerivation = {
-    extraPackages ? [],
+    packages ? [],
     name ? "claude-sandbox",
   }: let
-    sandboxScript = makeSandboxScript extraPackages;
-    allPackages = sandboxTools ++ extraPackages;
+    sandboxScript = makeSandboxScript packages;
+    allPackages = packages;
     packagePath = pkgs.lib.makeBinPath allPackages;
   in
     pkgs.stdenv.mkDerivation {
@@ -24,26 +24,28 @@
       '';
     };
 in rec {
+  inherit makeSandboxScript profiles;
+
   mkSandbox = {
-    extraPackages ? [],
+    packages ? [],
     name ? "claude-sandbox",
   }:
     mkDerivation {
-      inherit extraPackages name;
+      inherit name packages;
     };
 
-  extendSandbox = baseSandbox: extraPackages:
+  extendSandbox = baseSandbox: packages:
     mkDerivation {
-      inherit extraPackages;
+      inherit packages;
       inherit (baseSandbox) name;
     };
 
   mkDevShell = {
-    extraPackages ? [],
+    packages ? [],
     shellHook ? "",
   }:
     pkgs.mkShell {
-      buildInputs = [pkgs.bubblewrap] ++ sandboxTools ++ extraPackages;
+      buildInputs = [pkgs.bubblewrap] ++ packages;
 
       shellHook = ''
         echo "Bubblewrap sandbox environment loaded!"
@@ -56,21 +58,19 @@ in rec {
       '';
     };
 
-  inherit sandboxTools makeSandboxScript profiles;
-
-  mkProfile = profileName: extraPackages:
+  mkProfile = profileName: packages:
     mkSandbox {
-      inherit extraPackages;
+      inherit packages;
       name = "claude-sandbox-${profileName}";
     };
 
   mkHomeManagerSandbox = {
-    extraPackages ? [],
+    packages ? [],
     name ? "claude-sandbox",
   }: {
     home.packages = [
       (mkSandbox {
-        inherit extraPackages name;
+        inherit name packages;
       })
     ];
   };

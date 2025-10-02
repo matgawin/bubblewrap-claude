@@ -18,17 +18,16 @@ Key components:
 - `lib/default.nix`: Extensible API functions (mkSandbox, mkDevShell, mkProfile)
 - `lib/profiles.nix`: Language-specific development profiles definitions
 - `flake.nix`: Main flake configuration and package exports
-- `sandboxTools`: Curated list of base tools available in all sandboxes
 
 ## Extensible API
 
 The flake exports several functions for easy integration:
 
 ### Core Functions
-- `mkSandbox { extraPackages, name }`: Create custom sandbox with additional packages
-- `mkDevShell { extraPackages, shellHook }`: Create extensible development shell
-- `mkProfile profileName extraPackages`: Create named profile sandbox
-- `mkHomeManagerSandbox { extraPackages, name }`: Helper for Home Manager integration
+- `mkSandbox { packages, name }`: Create custom sandbox with additional packages
+- `mkDevShell { packages, shellHook }`: Create extensible development shell
+- `mkProfile profileName packages`: Create named profile sandbox
+- `mkHomeManagerSandbox { packages, name }`: Helper for Home Manager integration
 - `profiles`: Access to predefined language-specific tool sets
 
 ## Commands
@@ -98,7 +97,7 @@ Add to your flake inputs:
     bwLib = bubblewrap-claude.lib.${system};
   in {
     packages.${system}.my-sandbox = bwLib.mkSandbox {
-      extraPackages = with pkgs; [ docker kubectl terraform ];
+      packages = with pkgs; [ docker kubectl terraform ];
       name = "my-project-sandbox";
     };
   };
@@ -110,7 +109,7 @@ Add to your flake inputs:
 { inputs, pkgs, ... }: {
   home.packages = [
     (inputs.bubblewrap-claude.lib.${pkgs.system}.mkSandbox {
-      extraPackages = with pkgs; [ docker kubectl terraform ];
+      packages = with pkgs; [ docker kubectl terraform ];
       name = "my-sandbox";
     })
   ];
@@ -120,7 +119,7 @@ Add to your flake inputs:
 ### Extended Development Shell
 ```nix
 devShells.${system}.default = bwLib.mkDevShell {
-  extraPackages = with pkgs; [ docker kubectl terraform ];
+  packages = with pkgs; [ docker kubectl terraform ];
   shellHook = ''
     echo "Custom development environment loaded!"
     echo "Additional tools: docker, kubectl, terraform"

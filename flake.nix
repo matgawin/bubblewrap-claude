@@ -22,23 +22,25 @@
 
         sandboxLib = import ./lib {inherit pkgs;};
 
-        mkProfileSandbox = profileName: extraPackages:
+        mkProfileSandbox = profileName: packages:
           sandboxLib.mkSandbox {
-            inherit extraPackages;
+            inherit packages;
             name = "claude-sandbox-${profileName}";
           };
 
         profilePackages =
-          pkgs.lib.mapAttrs' (profileName: extraPackages: {
+          pkgs.lib.mapAttrs' (profileName: packages: {
             name = "claude-sandbox-${profileName}";
-            value = mkProfileSandbox profileName extraPackages;
+            value = mkProfileSandbox profileName packages;
           })
           sandboxLib.profiles;
       in {
         packages =
           profilePackages
           // {
-            claude-sandbox = sandboxLib.mkSandbox {};
+            claude-sandbox = sandboxLib.mkSandbox {
+              packages = sandboxLib.profiles.base;
+            };
             default = self'.packages.claude-sandbox;
           };
 

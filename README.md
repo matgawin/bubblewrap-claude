@@ -40,13 +40,13 @@ nix run .#claude-sandbox-rust      # Rust development
   in {
     # Create sandbox with your custom tools
     packages.${system}.my-sandbox = bwLib.mkSandbox {
-      extraPackages = with pkgs; [ docker kubectl terraform ];
+      packages = with pkgs; [ docker kubectl terraform ];
       name = "my-project-sandbox";
     };
 
     # Extended dev shell
     devShells.${system}.default = bwLib.mkDevShell {
-      extraPackages = with pkgs; [ docker kubectl terraform ];
+      packages = with pkgs; [ docker kubectl terraform ];
     };
   };
 }
@@ -58,7 +58,7 @@ nix run .#claude-sandbox-rust      # Rust development
 { inputs, pkgs, ... }: {
   home.packages = [
     (inputs.bubblewrap-claude.lib.${pkgs.system}.mkSandbox {
-      extraPackages = with pkgs; [ docker kubectl terraform ];
+      packages = with pkgs; [ docker kubectl terraform ];
       name = "my-sandbox";
     })
   ];
@@ -74,7 +74,7 @@ Creates a sandbox package with optional extra tools.
 
 ```nix
 bwLib.mkSandbox {
-  extraPackages = with pkgs; [ docker kubectl terraform ];  # optional
+  packages = with pkgs; [ docker kubectl terraform ];  # optional
   name = "my-sandbox";  # optional, defaults to "claude-sandbox"
 }
 ```
@@ -84,7 +84,7 @@ Creates an extensible development shell.
 
 ```nix
 bwLib.mkDevShell {
-  extraPackages = with pkgs; [ docker kubectl ];  # optional
+  packages = with pkgs; [ docker kubectl ];  # optional
   shellHook = "echo 'Welcome!'";  # optional
 }
 ```
@@ -102,7 +102,7 @@ Helper for Home Manager integration.
 
 ```nix
 bwLib.mkHomeManagerSandbox {
-  extraPackages = with pkgs; [ docker kubectl ];
+  packages = with pkgs; [ docker kubectl ];
   name = "my-sandbox";
 }
 ```
@@ -140,7 +140,7 @@ bwLib.mkHomeManagerSandbox {
 ```nix
 {
   devShells.${system}.default = bwLib.mkDevShell {
-    extraPackages = with pkgs; [
+    packages = with pkgs; [
       # Project dependencies
       nodejs postgresql redis
 
@@ -206,7 +206,7 @@ let
   ];
 in {
   packages.${system}.conditional-sandbox = bwLib.mkSandbox {
-    extraPackages = conditionalPackages;
+    packages = conditionalPackages;
   };
 }
 ```
