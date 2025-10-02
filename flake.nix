@@ -22,7 +22,7 @@
         sandboxTools = with pkgs; [
           bash
           bat
-          claude-code
+          bun
           coreutils
           diffutils
           fd
@@ -38,6 +38,7 @@
           jq
           less
           man
+          nodejs
           patch
           procps
           ripgrep
@@ -50,11 +51,15 @@
           zip
         ];
 
-        claudeAlias = "${pkgs.claude-code}/bin/claude --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch";
+        claudeAlias = "claude --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch";
         customBashProfile = pkgs.writeText "bash_profile" ''
+          bun add --silent -g @anthropic-ai/claude-code
+          export PATH="/home/$(whoami)/.bun/bin:$PATH"
+
           if [ -f "/tmp/claude.json" ]; then
             cp /tmp/claude.json $HOME/.claude.json
           fi
+
           alias claude="${claudeAlias}"
           claude
         '';
@@ -96,16 +101,19 @@
             --tmpfs /tmp \
             --dir /var \
             --dir /run \
+            --dir /usr/bin \
             --dir /etc/ssl \
             --dir /etc/ssl/certs \
             --ro-bind /etc/resolv.conf /etc/resolv.conf \
             --ro-bind ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-bundle.crt \
             --symlink /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt \
+            --symlink ${pkgs.coreutils}/bin/env /usr/bin/env \
             --ro-bind /nix /nix \
             --ro-bind /etc/passwd /etc/passwd \
             --ro-bind /etc/group /etc/group \
             $CLAUDE_SETTINGS \
             --bind "$PROJECT_DIR" "/home/$USER/project" \
+            --bind /home/$USER/.bun /home/$USER/.bun \
             --chdir "/home/$USER/project" \
             --setenv HOME "/home/$USER" \
             --setenv TMPDIR /tmp \
