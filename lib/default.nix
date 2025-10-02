@@ -3,7 +3,7 @@
   profiles = import ./profiles.nix {inherit pkgs;};
   inherit (sandbox) makeSandboxScript;
 
-  mkDerivation = {
+  mkSandbox = {
     packages ? [],
     name ? "claude-sandbox",
   }: let
@@ -23,19 +23,11 @@
         wrapProgram $out/bin/${name} --prefix PATH : ${packagePath}
       '';
     };
-in rec {
-  inherit makeSandboxScript profiles;
-
-  mkSandbox = {
-    packages ? [],
-    name ? "claude-sandbox",
-  }:
-    mkDerivation {
-      inherit name packages;
-    };
+in {
+  inherit makeSandboxScript profiles mkSandbox;
 
   extendSandbox = baseSandbox: packages:
-    mkDerivation {
+    mkSandbox {
       inherit packages;
       inherit (baseSandbox) name;
     };
