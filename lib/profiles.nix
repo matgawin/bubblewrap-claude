@@ -17,7 +17,6 @@
     jujutsu
     less
     man
-    nodejs
     patch
     procps
     ripgrep
@@ -31,6 +30,13 @@
   ];
 in {
   inherit base;
+
+  bare = with pkgs; [
+    bash
+    bun
+    coreutils
+  ];
+
   nix = with pkgs;
     [
       nix
