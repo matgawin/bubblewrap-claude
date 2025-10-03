@@ -2,14 +2,11 @@
   claudePackage = pkgs.callPackage ./claude-package.nix {inherit pkgs;};
   systemPrompt = builtins.readFile ./sandbox-prompt.txt;
 
-  claudeAlias = "--dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
+  disallowedTools = "WebSearch,WebFetch,Read(/nix/store/**),Bash(curl:*),Bash(wget:*)";
+  claudeArgs = "--dangerously-skip-permissions --disallowedTools ${pkgs.lib.escapeRegex disallowedTools} --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
   customBashProfile = pkgs.writeText "bash_profile" ''
-    if [ -f "/tmp/claude.json" ]; then
-      cp /tmp/claude.json $HOME/.claude.json
-    fi
-
-    alias claude="claude ${claudeAlias}"
+    alias claude="claude ${claudeArgs}"
     claude
   '';
 
@@ -34,12 +31,14 @@ in {
       fi
 
       CLAUDE_SETTINGS=""
-      if [ -f "$HOME/.claude.json" ]; then
-        CLAUDE_SETTINGS="--ro-bind $HOME/.claude.json /tmp/claude.json"
+      if [ -d "/home/$USER/.claude" ]; then
+        CLAUDE_SETTINGS="--bind /home/$USER/.claude /home/$USER/.claude"
+      fi
+      if [ -f "/home/$USER/.claude.json" ]; then
+        CLAUDE_SETTINGS="$CLAUDE_SETTINGS --bind /home/$USER/.claude.json /home/$USER/.claude.json"
       fi
 
       USER="$(whoami)"
-      SANDBOX_NAME="bubblewrap-claude"
 
       echo "Starting bubblewrap sandbox in: $PROJECT_DIR"
       exec ${pkgs.bubblewrap}/bin/bwrap \

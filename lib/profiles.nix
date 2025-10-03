@@ -32,7 +32,6 @@ in {
 
   bare = with pkgs; [
     bash
-    bun
     coreutils
   ];
 
