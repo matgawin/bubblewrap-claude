@@ -1,28 +1,34 @@
-{pkgs}:
-pkgs.stdenv.mkDerivation rec {
-  pname = "claude-code";
+{pkgs}: let
   version = "2.0.5";
-  src = ./.;
-  doCheck = false;
-  dontFixup = true;
-  buildInputs = with pkgs; [bun];
-  buildPhase = ''
-    runHook preBuild
-    bun add @anthropic-ai/claude-code@${version} -E
-    runHook postBuild
-  '';
-  installPhase = ''
-    runHook preInstall
-    mkdir -p $out/bin
-    cp -r node_modules $out/
+  claudeCodeTarball = pkgs.fetchurl {
+    url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${version}.tgz";
+    hash = "sha256-vT+Csqi3vtAbQam6p2qzefBycFDkUO+k5EdHHcCPT2k=";
+  };
+in
+  pkgs.stdenv.mkDerivation {
+    pname = "claude-code";
+    inherit version;
+    src = claudeCodeTarball;
+    nativeBuildInputs = with pkgs; [nodejs];
 
-    cat > $out/bin/claude << 'EOF'
-    #!/usr/bin/env bash
-    exec bun --bun run "$(dirname "$0")/../node_modules/@anthropic-ai/claude-code/cli.js" "$@"
-    EOF
-    chmod +x $out/bin/claude
-  '';
-  outputHashAlgo = "sha256";
-  outputHashMode = "recursive";
-  outputHash = "sha256-rRiRu1nPJYsvblLIRyzrTMck3xl21gIA9OmRcqe132s=";
-}
+    unpackPhase = ''
+      runHook preUnpack
+      tar -xzf $src --strip-components=1
+      runHook postUnpack
+    '';
+
+    installPhase = ''
+      runHook preInstall
+
+      mkdir -p $out/bin $out/lib
+      cp -r . $out/lib/
+
+      cat > $out/bin/claude << 'EOF'
+      #!/usr/bin/env bash
+      exec ${pkgs.nodejs}/bin/node "$(dirname "$0")/../lib/cli.js" "$@"
+      EOF
+      chmod +x $out/bin/claude
+
+      runHook postInstall
+    '';
+  }

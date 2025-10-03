@@ -63,7 +63,6 @@ in {
         --ro-bind /etc/group /etc/group \
         $CLAUDE_SETTINGS \
         --bind "$PROJECT_DIR" "/home/$USER/project" \
-        --bind /home/$USER/.bun /home/$USER/.bun \
         --chdir "/home/$USER/project" \
         --setenv HOME "/home/$USER" \
         --setenv TMPDIR /tmp \

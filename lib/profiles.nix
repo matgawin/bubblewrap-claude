@@ -1,7 +1,6 @@
 {pkgs}: let
   base = with pkgs; [
     bash
-    bun
     coreutils
     diffutils
     fd
