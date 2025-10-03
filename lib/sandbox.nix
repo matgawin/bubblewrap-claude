@@ -1,13 +1,15 @@
 {pkgs}: let
+  claudePackage = pkgs.callPackage ./claude-package.nix {inherit pkgs;};
   systemPrompt = builtins.readFile ./sandbox-prompt.txt;
-  claudeAlias = "claude -- --dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
+
+  claudeAlias = "--dangerously-skip-permissions --disallowedTools WebSearch,WebFetch --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
   customBashProfile = pkgs.writeText "bash_profile" ''
     if [ -f "/tmp/claude.json" ]; then
       cp /tmp/claude.json $HOME/.claude.json
     fi
 
-    alias claude="bunx --silent --bun -p @anthropic-ai/claude-code ${claudeAlias}"
+    alias claude="claude ${claudeAlias}"
     claude
   '';
 
@@ -66,7 +68,7 @@ in {
         --setenv HOME "/home/$USER" \
         --setenv TMPDIR /tmp \
         --setenv USER $USER \
-        --setenv PATH "${pkgs.lib.makeBinPath packages}" \
+        --setenv PATH "${pkgs.lib.makeBinPath (packages ++ [claudePackage])}" \
         --setenv SHELL "${pkgs.bash}/bin/bash" \
         --setenv CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC "1" \
         --setenv DISABLE_AUTOUPDATER "1" \
