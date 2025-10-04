@@ -30,6 +30,7 @@ in {
         fi
       fi
 
+      USER="$(whoami)"
       CLAUDE_SETTINGS=""
       if [ -d "/home/$USER/.claude" ]; then
         CLAUDE_SETTINGS="--bind /home/$USER/.claude /home/$USER/.claude"
@@ -37,8 +38,6 @@ in {
       if [ -f "/home/$USER/.claude.json" ]; then
         CLAUDE_SETTINGS="$CLAUDE_SETTINGS --bind /home/$USER/.claude.json /home/$USER/.claude.json"
       fi
-
-      USER="$(whoami)"
 
       echo "Starting bubblewrap sandbox in: $PROJECT_DIR"
       exec ${pkgs.bubblewrap}/bin/bwrap \
