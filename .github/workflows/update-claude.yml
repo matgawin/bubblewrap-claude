@@ -93,4 +93,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto "1" --rebase
+          gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto --rebase
