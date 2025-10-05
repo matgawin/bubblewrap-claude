@@ -10,6 +10,12 @@ in
     inherit version;
     src = claudeCodeTarball;
     nativeBuildInputs = with pkgs; [nodejs];
+    meta = {
+      description = "Claude Code";
+      homepage = "https://www.npmjs.com/package/@anthropic-ai/claude-code";
+      license = pkgs.lib.licenses.unfree;
+      mainProgram = "claude";
+    };
 
     unpackPhase = ''
       runHook preUnpack
