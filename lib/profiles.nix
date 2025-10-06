@@ -49,6 +49,7 @@ in {
       delve
       golangci-lint
       gotools
+      gofumpt
     ]
     ++ base;
 
@@ -60,6 +61,7 @@ in {
       poetry
       ruff
       pyright
+      uv
     ]
     ++ base;
 
@@ -80,6 +82,33 @@ in {
       cmake
       gnumake
       clang-tools
+    ]
+    ++ base;
+
+  js = with pkgs;
+    [
+      nodejs
+      yarn
+      pnpm
+      bun
+      typescript
+      typescript-language-server
+      eslint
+      prettier
+    ]
+    ++ base;
+
+  devops = with pkgs;
+    [
+      docker
+      docker-compose
+      podman
+      kubernetes-helm
+      kubectl
+      terraform
+      pgcli
+      cloudflared
+      awscli2
     ]
     ++ base;
 }
