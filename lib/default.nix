@@ -13,6 +13,13 @@
   in
     pkgs.stdenv.mkDerivation {
       inherit name;
+      pname = name;
+      meta = {
+        description = "Isolated environment for development with Claude Code";
+        homepage = "https://github.com/matgawin/bubblewrap-claude";
+        license = pkgs.lib.licenses.mit;
+        mainProgram = name;
+      };
       buildInputs = [pkgs.makeWrapper];
       unpackPhase = "true";
 
