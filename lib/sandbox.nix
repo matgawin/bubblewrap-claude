@@ -15,8 +15,24 @@
   '';
 
   apiUrl = "https://api.anthropic.com";
+
+  defaultEnvVars = {
+    TMPDIR = "/tmp";
+    SHELL = "${pkgs.bash}/bin/bash";
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+    DISABLE_AUTOUPDATER = "1";
+    DISABLE_ERROR_REPORTING = "1";
+    DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
+    DISABLE_TELEMETRY = "1";
+    ANTHROPIC_API_URL = apiUrl;
+  };
 in {
-  makeSandboxScript = packages:
+  makeSandboxScript = packages: envVars: let
+    mergedEnvVars = defaultEnvVars // envVars;
+    envVarFlags =
+      pkgs.lib.concatStringsSep " "
+      (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") mergedEnvVars);
+  in
     pkgs.writeShellScript "claude-sandbox" ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -63,16 +79,9 @@ in {
         --bind "$PROJECT_DIR" "/home/$USER/project" \
         --chdir "/home/$USER/project" \
         --setenv HOME "/home/$USER" \
-        --setenv TMPDIR /tmp \
         --setenv USER $USER \
         --setenv PATH "${pkgs.lib.makeBinPath (packages ++ [claudePackage])}" \
-        --setenv SHELL "${pkgs.bash}/bin/bash" \
-        --setenv CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC "1" \
-        --setenv DISABLE_AUTOUPDATER "1" \
-        --setenv DISABLE_ERROR_REPORTING "1" \
-        --setenv DISABLE_NON_ESSENTIAL_MODEL_CALLS "1" \
-        --setenv DISABLE_TELEMETRY "1" \
-        --setenv ANTHROPIC_API_URL "${apiUrl}" \
+        ${envVarFlags} \
         ${customBash}
     '';
 }

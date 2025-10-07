@@ -6,8 +6,9 @@
   mkSandbox = {
     packages ? [],
     name ? "claude-sandbox",
+    envVars ? {},
   }: let
-    sandboxScript = makeSandboxScript packages;
+    sandboxScript = makeSandboxScript packages envVars;
     allPackages = packages;
     packagePath = pkgs.lib.makeBinPath allPackages;
   in
@@ -66,10 +67,11 @@ in {
   mkHomeManagerSandbox = {
     packages ? [],
     name ? "claude-sandbox",
+    envVars ? {},
   }: {
     home.packages = [
       (mkSandbox {
-        inherit name packages;
+        inherit name packages envVars;
       })
     ];
   };
