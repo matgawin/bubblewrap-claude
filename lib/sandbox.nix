@@ -14,7 +14,20 @@
     exec ${pkgs.bash}/bin/bash --rcfile ${customBashProfile} -i
   '';
 
-  apiUrl = "https://api.anthropic.com";
+  apiUrl = "api.anthropic.com";
+  anthropicApiIps = [
+    "160.79.104.10"
+  ];
+
+  customResolvConf = pkgs.writeText "resolv.conf" ''
+    nameserver 192.0.2.1
+  '';
+
+  customHosts = pkgs.writeText "hosts" ''
+    127.0.0.1 localhost
+    ::1 localhost ip6-localhost ip6-loopback
+    ${builtins.concatStringsSep "\n" (map (ip: "${ip} ${apiUrl}") anthropicApiIps)}
+  '';
 
   defaultEnvVars = {
     TMPDIR = "/tmp";
@@ -24,7 +37,7 @@
     DISABLE_ERROR_REPORTING = "1";
     DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
     DISABLE_TELEMETRY = "1";
-    ANTHROPIC_API_URL = apiUrl;
+    ANTHROPIC_API_URL = "https://${apiUrl}";
   };
 in {
   makeSandboxScript = packages: envVars: let
@@ -68,7 +81,8 @@ in {
         --dir /usr/bin \
         --dir /etc/ssl \
         --dir /etc/ssl/certs \
-        --ro-bind /etc/resolv.conf /etc/resolv.conf \
+        --ro-bind ${customResolvConf} /etc/resolv.conf \
+        --ro-bind ${customHosts} /etc/hosts \
         --ro-bind ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-bundle.crt \
         --symlink /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt \
         --symlink ${pkgs.coreutils}/bin/env /usr/bin/env \
