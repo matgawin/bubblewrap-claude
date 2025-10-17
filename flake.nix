@@ -18,18 +18,16 @@
 
         sandboxLib = import ./lib {inherit pkgs;};
         profilePackages =
-          pkgs.lib.mapAttrs' (profileName: packages: rec {
+          pkgs.lib.mapAttrs' (profileName: profile: rec {
             name = "claude-sandbox-${profileName}";
-            value = sandboxLib.mkSandbox {inherit name packages;};
+            value = sandboxLib.mkSandbox (profile // {inherit name;});
           })
           sandboxLib.profiles;
       in {
         packages =
           profilePackages
           // rec {
-            claude-sandbox = sandboxLib.mkSandbox {
-              packages = sandboxLib.profiles.base;
-            };
+            claude-sandbox = sandboxLib.mkSandbox (sandboxLib.base // {name = "claude-sandbox";});
             default = claude-sandbox;
           };
 

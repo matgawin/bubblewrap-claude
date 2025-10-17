@@ -4,31 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Nix flake that creates a secure bubblewrap sandbox environment specifically designed for running Claude Code. The project sets up an isolated environment and a curated set of development tools. The flake is designed to be easily imported and extended with custom packages in other projects.
+This is a Nix flake that creates a secure bubblewrap sandbox environment specifically designed for running Claude Code. The project uses a profile-based architecture to provide language-specific development environments with network isolation. The flake is designed to be easily imported and extended with custom profiles in other projects.
 
 ## Architecture
 
-The flake defines a sandboxed environment using:
+The flake defines sandboxed environments using:
 - **Bubblewrap**: Provides process isolation and filesystem sandboxing
 - **Nix**: Manages dependencies and creates reproducible environments
 - **Claude Code**: Pre-installed and aliased with `--dangerously-skip-permissions`
+- **Profile System**: Structured configuration for language-specific toolchains
 
 Key components:
-- `lib/sandbox.nix`: Core sandbox script generation and tool definitions
-- `lib/default.nix`: Extensible API functions (mkSandbox, mkDevShell, mkProfile)
-- `lib/profiles.nix`: Language-specific development profiles definitions
+- `lib/sandbox.nix`: Core sandbox script generation
+- `lib/default.nix`: Extensible API functions (mkSandbox, mkDevShell, deriveProfile)
+- `lib/profiles.nix`: Language-specific profile definitions
 - `flake.nix`: Main flake configuration and package exports
+
+## Profile-Based Architecture
+
+Profiles are structured configurations containing:
+- `name`: Profile identifier
+- `packages`: List of Nix packages to include
+- `env`: Environment variables
+- `args`: Additional bubblewrap arguments (for cache binds, etc.)
+- `url`: API endpoint URL (defaults to api.anthropic.com)
+- `ips`: IP addresses for the API endpoint
+
+Base profile (`base`) provides core utilities, and other profiles extend it using `deriveProfile`.
 
 ## Extensible API
 
-The flake exports several functions for easy integration:
+The flake exports functions for creating and customizing sandboxes:
 
 ### Core Functions
-- `mkSandbox { packages, name }`: Create custom sandbox with additional packages
+- `mkSandbox profile`: Create sandbox from profile specification
 - `mkDevShell { packages, shellHook }`: Create extensible development shell
-- `mkProfile profileName packages`: Create named profile sandbox
-- `mkHomeManagerSandbox { packages, name }`: Helper for Home Manager integration
-- `profiles`: Access to predefined language-specific tool sets
+- `deriveProfile baseProfile extensions`: Extend existing profile
+- `profiles`: Access to predefined language-specific profiles
+
+### Profile Structure
+```nix
+{
+  name = "profile-name";
+  packages = with pkgs; [ tool1 tool2 ];
+  env = { VAR = "value"; };
+  args = [ "--ro-bind-try /cache /cache" ];
+  url = "api.example.com";  # optional
+  ips = [ "1.2.3.4" ];      # optional
+}
+```
+
+## Available Profiles
+
+### Language Development Profiles
+- **base**: Core development tools (git, vim, ripgrep, etc.)
+- **bare**: Minimal environment (bash, coreutils only)
+- **nix**: Nix development (nix, alejandra) with `/nix` bind
+- **go**: Go development with module cache binding
+- **python**: Python development with pip/poetry/uv cache binding
+- **rust**: Rust development with cargo cache binding
+- **cpp**: C++ development with ccache binding
+- **js**: JavaScript/TypeScript with npm/yarn/pnpm/bun cache binding
+- **devops**: DevOps tools (docker, kubectl, terraform) with config binding
+
+### Cache Management
+Each profile automatically binds appropriate cache directories:
+- Go: `~/go/pkg/mod`
+- Python: `~/.cache/pip`, `~/.cache/pypoetry`, `~/.cache/uv`
+- Rust: `~/.cargo/registry`, `~/.cargo/git`
+- JavaScript: `~/.npm`, `~/.yarn`, `~/.bun`, pnpm store
+- DevOps: `~/.kube`, `~/.aws`, `~/.cache/helm`, `~/.terraform.d`
 
 ## Commands
 
@@ -36,83 +81,73 @@ The flake exports several functions for easy integration:
 ```bash
 # Enter development shell
 nix develop
-# or
+# or with direnv
 direnv allow
 
-# Run the sandbox in current directory
+# Run base sandbox in current directory
 nix run
 
-# Run the sandbox in a specific directory
+# Run sandbox in specific directory
 nix run .#claude-sandbox [directory]
 ```
 
 ### Language-Specific Profiles
-Pre-configured toolchains for common languages:
-
 ```bash
-# Nix development
-nix run .#claude-sandbox-nix
-
-# Go development
-nix run .#claude-sandbox-go
-
-# Python development
-nix run .#claude-sandbox-python
-
-# Rust development
-nix run .#claude-sandbox-rust
-
-# C++ development
-nix run .#claude-sandbox-cpp
+# Available profiles
+nix run .#claude-sandbox-bare      # Minimal environment
+nix run .#claude-sandbox-nix       # Nix development
+nix run .#claude-sandbox-go        # Go development
+nix run .#claude-sandbox-python    # Python development
+nix run .#claude-sandbox-rust      # Rust development
+nix run .#claude-sandbox-cpp       # C++ development
+nix run .#claude-sandbox-js        # JavaScript/TypeScript
+nix run .#claude-sandbox-devops    # DevOps tooling
 ```
-
-Each profile includes language-specific tools:
-- **nix**: nix, alejandra
-- **go**: go, gopls, delve, golangci-lint, gotools
-- **python**: python3, pip, virtualenv, poetry, ruff, pyright
-- **rust**: rustc, cargo, rustfmt, clippy, rust-analyzer
-- **cpp**: gcc, clang, cmake, make, clang-tools
 
 ### Inside the Sandbox
 ```bash
 # Claude Code is aliased and ready to use
 claude
 
-# Available tools include:
+# Available in all profiles:
 # - Version control: git, jujutsu
-# - Text processing: ripgrep, fd, jq, yq
-# - File operations: tree, rsync, zip/unzip
-# - Editor: vim
+# - Text processing: ripgrep, fd, jq, yq, less
+# - File operations: tree, rsync, zip/unzip, tar, gzip
+# - System tools: bash, coreutils, procps, which, file
+# - Editor: vim with man pages
 ```
 
 ## Importing and Extending
 
 ### Basic Import
-Add to your flake inputs:
 ```nix
 {
   inputs.bubblewrap-claude.url = "github:matgawin/bubblewrap-claude";
 
   outputs = {nixpkgs, bubblewrap-claude, ...}: let
+    system = "x86_64-linux";
     bwLib = bubblewrap-claude.lib.${system};
   in {
     packages.${system}.my-sandbox = bwLib.mkSandbox {
+      name = "my-project";
       packages = with pkgs; [ docker kubectl terraform ];
-      name = "my-project-sandbox";
+      env = { PROJECT_ENV = "development"; };
     };
   };
 }
 ```
 
-### Home Manager Integration
+### Extending Existing Profiles
 ```nix
-{ inputs, pkgs, ... }: {
-  home.packages = [
-    (inputs.bubblewrap-claude.lib.${pkgs.system}.mkSandbox {
-      packages = with pkgs; [ docker kubectl terraform ];
-      name = "my-sandbox";
-    })
-  ];
+let
+  customGoProfile = bwLib.deriveProfile bwLib.profiles.go {
+    name = "go-web";
+    packages = with pkgs; [ air templ ];
+    env = { GO_ENV = "development"; };
+    args = [ "--ro-bind-try /home/$USER/.config/air /home/$USER/.config/air" ];
+  };
+in {
+  packages.${system}.go-web = bwLib.mkSandbox customGoProfile;
 }
 ```
 
@@ -122,15 +157,69 @@ devShells.${system}.default = bwLib.mkDevShell {
   packages = with pkgs; [ docker kubectl terraform ];
   shellHook = ''
     echo "Custom development environment loaded!"
-    echo "Additional tools: docker, kubectl, terraform"
+    echo "Available sandboxes:"
+    echo "  nix run .#claude-sandbox-go"
+    echo "  nix run .#claude-sandbox-js"
+    echo "  nix run .#fullstack"
   '';
 };
 ```
 
 ## Security Model
 
-The sandbox enforces strict isolation:
-- Filesystem access limited to the project directory
-- Temporary directory isolation (`/tmp`)
-- Process isolation with `--unshare-all`
-- Claude Code configuration loaded from host's `~/.claude.json` if present
+The sandbox enforces strict isolation while maintaining development workflow:
+
+### Process Isolation
+- Complete namespace isolation with `--unshare-all`
+- Runs as host user but with restricted capabilities
+- Process tree isolation from host system
+
+### Filesystem Access
+- Project directory: read-write access to current/specified directory
+- Temporary directory: isolated `/tmp` for each sandbox session
+- System directories: read-only access to `/nix`, `/etc` (controlled)
+- Cache directories: read-only binding for language-specific caches
+- Host configuration: `~/.claude.json` mounted if present
+
+### Network Configuration
+- Custom `/etc/hosts` with Anthropic API endpoints
+- Controlled DNS resolution via custom `resolv.conf`
+- Network access enabled for API calls while maintaining filesystem isolation
+- Profile-specific API endpoint configuration
+
+### Environment Control
+- Telemetry and auto-updates disabled via environment variables
+- Language-specific environment setup (PATH, cache locations, etc.)
+- Custom environment variables per profile
+- Inheritance control for sensitive variables (API keys)
+
+## Debugging and Development
+
+### Profile Development
+When creating new profiles, use the base profile structure:
+```nix
+myProfile = bwLib.deriveProfile bwLib.base {
+  name = "my-tool";
+  packages = with pkgs; [ my-tool ];
+  env = { MY_TOOL_CONFIG = "/tmp/config"; };
+  args = [ "--ro-bind-try /home/$USER/.my-tool /home/$USER/.my-tool" ];
+};
+```
+
+### Common Patterns
+- Use `--ro-bind-try` for optional cache directories
+- Bind configuration directories when tools expect them in `$HOME`
+- Set tool-specific environment variables for cache locations in `/tmp`
+- Include language servers and formatters in development profiles
+
+### Testing Profiles
+```bash
+# Test profile in isolation
+nix run .#my-custom-sandbox /tmp/test-project
+
+# Check available tools
+nix run .#my-custom-sandbox -- which my-tool
+
+# Verify cache bindings
+nix run .#my-custom-sandbox -- ls -la ~/.cache/
+```

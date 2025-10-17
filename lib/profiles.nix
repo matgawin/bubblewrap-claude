@@ -1,5 +1,5 @@
 {pkgs}: let
-  base = with pkgs; [
+  basePackages = with pkgs; [
     bash
     coreutils
     diffutils
@@ -27,88 +27,158 @@
     yq
     zip
   ];
+
+  base = rec {
+    url = "api.anthropic.com";
+    ips = [
+      "160.79.104.10"
+    ];
+    env = {
+      TMPDIR = "/tmp";
+      SHELL = "${pkgs.bash}/bin/bash";
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+      DISABLE_AUTOUPDATER = "1";
+      DISABLE_ERROR_REPORTING = "1";
+      DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
+      DISABLE_TELEMETRY = "1";
+      ANTHROPIC_API_URL = "https://api.anthropic.com";
+    };
+    args = [
+    ];
+    packages = basePackages;
+  };
+
+  deriveProfile = default: profile: {
+    name = profile.name;
+    url = profile.url or default.url;
+    ips = profile.ips or default.ips;
+    env = (default.env or {}) // (profile.env or {});
+    args = (default.args or []) ++ (profile.args or []);
+    packages = (default.packages or []) ++ (profile.packages or []);
+  };
+  fromBase = deriveProfile base;
 in {
-  inherit base;
+  inherit base deriveProfile;
 
-  bare = with pkgs; [
-    bash
-    coreutils
-  ];
+  profiles = {
+    bare = {
+      url = base.url;
+      ips = base.ips;
+      env = base.env;
+      args = base.args;
+      packages = with pkgs; [
+        bash
+        coreutils
+      ];
+    };
 
-  nix = with pkgs;
-    [
-      nix
-      alejandra
-    ]
-    ++ base;
+    nix = fromBase {
+      args = [
+        "--ro-bind /nix /nix"
+      ];
+      packages = with pkgs; [
+        nix
+        alejandra
+      ];
+    };
 
-  go = with pkgs;
-    [
-      go
-      gopls
-      delve
-      golangci-lint
-      gotools
-      gofumpt
-    ]
-    ++ base;
+    go = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/go/pkg/mod /home/$USER/go/pkg/mod"
+      ];
+      packages = with pkgs; [
+        go
+        gopls
+        delve
+        golangci-lint
+        gotools
+        gofumpt
+      ];
+    };
 
-  python = with pkgs;
-    [
-      python3
-      python3Packages.pip
-      python3Packages.virtualenv
-      poetry
-      ruff
-      pyright
-      uv
-    ]
-    ++ base;
+    python = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/.cache/pip /home/$USER/.cache/pip"
+        "--ro-bind-try /home/$USER/.cache/pypoetry /home/$USER/.cache/pypoetry"
+        "--ro-bind-try /home/$USER/.cache/uv /home/$USER/.cache/uv"
+      ];
+      packages = with pkgs; [
+        python3
+        python3Packages.pip
+        python3Packages.virtualenv
+        poetry
+        ruff
+        pyright
+        uv
+      ];
+    };
 
-  rust = with pkgs;
-    [
-      rustc
-      cargo
-      rustfmt
-      clippy
-      rust-analyzer
-    ]
-    ++ base;
+    rust = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/.cargo/registry /home/$USER/.cargo/registry"
+        "--ro-bind-try /home/$USER/.cargo/git /home/$USER/.cargo/git"
+      ];
+      packages = with pkgs; [
+        rustc
+        cargo
+        rustfmt
+        clippy
+        rust-analyzer
+      ];
+    };
 
-  cpp = with pkgs;
-    [
-      gcc
-      clang
-      cmake
-      gnumake
-      clang-tools
-    ]
-    ++ base;
+    cpp = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/.cache/ccache /home/$USER/.cache/ccache"
+        "--ro-bind-try /home/$USER/.ccache /home/$USER/.ccache"
+      ];
+      packages = with pkgs; [
+        gcc
+        clang
+        cmake
+        gnumake
+        clang-tools
+      ];
+    };
 
-  js = with pkgs;
-    [
-      nodejs
-      yarn
-      pnpm
-      bun
-      typescript
-      typescript-language-server
-      eslint
-      prettier
-    ]
-    ++ base;
+    js = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/.npm /home/$USER/.npm"
+        "--ro-bind-try /home/$USER/.yarn /home/$USER/.yarn"
+        "--ro-bind-try /home/$USER/.cache/yarn /home/$USER/.cache/yarn"
+        "--ro-bind-try /home/$USER/.local/share/pnpm /home/$USER/.local/share/pnpm"
+        "--ro-bind-try /home/$USER/.bun /home/$USER/.bun"
+      ];
+      packages = with pkgs; [
+        nodejs
+        yarn
+        pnpm
+        bun
+        typescript
+        typescript-language-server
+        eslint
+        prettier
+      ];
+    };
 
-  devops = with pkgs;
-    [
-      docker
-      docker-compose
-      podman
-      kubernetes-helm
-      kubectl
-      terraform
-      pgcli
-      cloudflared
-      awscli2
-    ]
-    ++ base;
+    devops = fromBase {
+      args = [
+        "--ro-bind-try /home/$USER/.kube /home/$USER/.kube"
+        "--ro-bind-try /home/$USER/.aws /home/$USER/.aws"
+        "--ro-bind-try /home/$USER/.cache/helm /home/$USER/.cache/helm"
+        "--ro-bind-try /home/$USER/.terraform.d /home/$USER/.terraform.d"
+      ];
+      packages = with pkgs; [
+        docker
+        docker-compose
+        podman
+        kubernetes-helm
+        kubectl
+        terraform
+        pgcli
+        cloudflared
+        awscli2
+      ];
+    };
+  };
 }

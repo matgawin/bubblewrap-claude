@@ -3,14 +3,10 @@
   profiles = import ./profiles.nix {inherit pkgs;};
   inherit (sandbox) makeSandboxScript;
 
-  mkSandbox = {
-    packages ? [],
-    name ? "claude-sandbox",
-    envVars ? {},
-  }: let
-    sandboxScript = makeSandboxScript packages envVars;
-    allPackages = packages;
-    packagePath = pkgs.lib.makeBinPath allPackages;
+  mkSandbox = profile: let
+    sandboxScript = makeSandboxScript profile;
+    packagePath = pkgs.lib.makeBinPath profile.packages;
+    name = profile.name;
   in
     pkgs.stdenv.mkDerivation {
       inherit name;
@@ -32,13 +28,8 @@
       '';
     };
 in {
-  inherit makeSandboxScript profiles mkSandbox;
-
-  extendSandbox = baseSandbox: packages:
-    mkSandbox {
-      inherit packages;
-      inherit (baseSandbox) name;
-    };
+  inherit makeSandboxScript mkSandbox;
+  inherit (profiles) profiles deriveProfile base;
 
   mkDevShell = {
     packages ? [],
@@ -57,22 +48,4 @@ in {
         ${shellHook}
       '';
     };
-
-  mkProfile = profileName: packages:
-    mkSandbox {
-      inherit packages;
-      name = "claude-sandbox-${profileName}";
-    };
-
-  mkHomeManagerSandbox = {
-    packages ? [],
-    name ? "claude-sandbox",
-    envVars ? {},
-  }: {
-    home.packages = [
-      (mkSandbox {
-        inherit name packages envVars;
-      })
-    ];
-  };
 }

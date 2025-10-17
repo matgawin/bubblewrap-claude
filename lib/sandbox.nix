@@ -14,37 +14,23 @@
     exec ${pkgs.bash}/bin/bash --rcfile ${customBashProfile} -i
   '';
 
-  apiUrl = "api.anthropic.com";
-  anthropicApiIps = [
-    "160.79.104.10"
-  ];
-
   customResolvConf = pkgs.writeText "resolv.conf" ''
     nameserver 192.0.2.1
   '';
 
-  customHosts = pkgs.writeText "hosts" ''
-    127.0.0.1 localhost
-    ::1 localhost ip6-localhost ip6-loopback
-    ${builtins.concatStringsSep "\n" (map (ip: "${ip} ${apiUrl}") anthropicApiIps)}
-  '';
-
-  defaultEnvVars = {
-    TMPDIR = "/tmp";
-    SHELL = "${pkgs.bash}/bin/bash";
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-    DISABLE_AUTOUPDATER = "1";
-    DISABLE_ERROR_REPORTING = "1";
-    DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
-    DISABLE_TELEMETRY = "1";
-    ANTHROPIC_API_URL = "https://${apiUrl}";
-  };
+  mkCustomHosts = url: ips:
+    pkgs.writeText "hosts" ''
+      127.0.0.1 localhost
+      ::1 localhost ip6-localhost ip6-loopback
+      ${builtins.concatStringsSep "\n" (map (ip: "${ip} ${url}") ips)}
+    '';
 in {
-  makeSandboxScript = packages: envVars: let
-    mergedEnvVars = defaultEnvVars // envVars;
-    envVarFlags =
+  makeSandboxScript = profile: let
+    args = builtins.concatStringsSep " " profile.args;
+    customHosts = mkCustomHosts profile.url profile.ips;
+    env =
       pkgs.lib.concatStringsSep " "
-      (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") mergedEnvVars);
+      (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") profile.env);
   in
     pkgs.writeShellScript "claude-sandbox" ''
       #!/usr/bin/env bash
@@ -60,13 +46,6 @@ in {
       fi
 
       USER="$(whoami)"
-      CLAUDE_SETTINGS=""
-      if [ -d "/home/$USER/.claude" ]; then
-        CLAUDE_SETTINGS="--bind /home/$USER/.claude /home/$USER/.claude"
-      fi
-      if [ -f "/home/$USER/.claude.json" ]; then
-        CLAUDE_SETTINGS="$CLAUDE_SETTINGS --bind /home/$USER/.claude.json /home/$USER/.claude.json"
-      fi
 
       echo "Starting bubblewrap sandbox in: $PROJECT_DIR"
       exec ${pkgs.bubblewrap}/bin/bwrap \
@@ -89,13 +68,15 @@ in {
         --ro-bind /nix /nix \
         --ro-bind /etc/passwd /etc/passwd \
         --ro-bind /etc/group /etc/group \
-        $CLAUDE_SETTINGS \
+        --bind-try /home/$USER/.claude /home/$USER/.claude \
+        --bind-try /home/$USER/.claude.json /home/$USER/.claude.json \
+        ${args} \
         --bind "$PROJECT_DIR" "/home/$USER/project" \
         --chdir "/home/$USER/project" \
         --setenv HOME "/home/$USER" \
         --setenv USER $USER \
-        --setenv PATH "${pkgs.lib.makeBinPath (packages ++ [claudePackage])}" \
-        ${envVarFlags} \
+        --setenv PATH "${pkgs.lib.makeBinPath (profile.packages ++ [claudePackage])}" \
+        ${env} \
         ${customBash}
     '';
 }
