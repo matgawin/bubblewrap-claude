@@ -84,6 +84,10 @@ bwLib.mkSandbox {
   name = "my-sandbox";  # required
   packages = with pkgs; [ git vim ];  # required
   env = { VAR = "value"; };  # optional environment variables
+  preStartHooks = [  # optional runtime hooks
+    ''export SECRET="$(cat /path/to/secret)"''
+    ''echo "Setup complete"''
+  ];
   args = [ "--ro-bind /path /path" ];  # optional bubblewrap arguments
   url = "api.example.com";  # optional API URL
   ips = [ "1.2.3.4" ];  # optional IP addresses for URL
@@ -122,6 +126,9 @@ bwLib.deriveProfile baseProfile {
   name = "extended-profile";  # optional: override name
   packages = with pkgs; [ extra-tool ];  # additional packages
   env = { EXTRA_VAR = "value"; };  # additional environment variables
+  preStartHooks = [  # additional runtime hooks
+    ''export API_KEY="$(cat /run/secrets/key)"''
+  ];  # inherits parent hooks and adds these
   args = [ "--extra-arg" ];  # additional bubblewrap arguments
 }
 ```
@@ -242,7 +249,9 @@ bwLib.mkSandbox {
 }
 ```
 
-### Environment Variable Management
+### Runtime Setup with Pre-start Hooks
+
+Pre-start hooks execute shell commands when the sandbox starts, enabling runtime secret loading and dynamic configuration:
 
 ```nix
 let
@@ -252,9 +261,15 @@ let
       NODE_ENV = "development";
       DEBUG = "app:*";
       LOG_LEVEL = "debug";
-      # Inherit from host for API keys
-      ANTHROPIC_API_KEY = "\${ANTHROPIC_API_KEY:-}";
     };
+    preStartHooks = [
+      # Load secrets from sops-nix at runtime
+      ''export ANTHROPIC_API_KEY="$(cat /run/secrets/claude-key)"''
+      # Set up dynamic configuration
+      ''export PROJECT_ID="$(basename $(pwd))"''
+      # Validate environment
+      ''if [ -z "$ANTHROPIC_API_KEY" ]; then echo "Warning: API key not found"; fi''
+    ];
   };
 ```
 

@@ -5,18 +5,14 @@
   disallowedTools = "WebSearch,WebFetch,Read(/nix/store/**),Bash(curl:*),Bash(wget:*)";
   claudeArgs = "--dangerously-skip-permissions --disallowedTools ${pkgs.lib.escapeRegex disallowedTools} --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
-  customBashProfile = pkgs.writeText "bash_profile" ''
-    alias claude="claude ${claudeArgs}"
-    claude
-  '';
-
-  customBash = pkgs.writeShellScript "custom-bash" ''
-    exec ${pkgs.bash}/bin/bash --rcfile ${customBashProfile} -i
-  '';
-
   customResolvConf = pkgs.writeText "resolv.conf" ''
     nameserver 192.0.2.1
   '';
+
+  customBash = bashProfile:
+    pkgs.writeShellScript "custom-bash" ''
+      exec ${pkgs.bash}/bin/bash --rcfile ${bashProfile} -i
+    '';
 
   mkCustomHosts = url: ips:
     pkgs.writeText "hosts" ''
@@ -31,6 +27,19 @@ in {
     env =
       pkgs.lib.concatStringsSep " "
       (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") profile.env);
+
+    customBashProfile = pkgs.writeText "bash_profile" ''
+      ${pkgs.lib.optionalString (profile ? preStartHooks && builtins.length profile.preStartHooks > 0) ''
+        echo "Running pre-start hook(s)..."
+        ${pkgs.lib.concatStringsSep "\n" profile.preStartHooks}
+        echo "Pre-start hooks completed."
+      ''}
+
+      alias claude="claude ${claudeArgs}"
+      claude
+    '';
+
+    customBashScript = customBash customBashProfile;
   in
     pkgs.writeShellScript "claude-sandbox" ''
       #!/usr/bin/env bash
@@ -77,6 +86,6 @@ in {
         --setenv USER $USER \
         --setenv PATH "${pkgs.lib.makeBinPath (profile.packages ++ [claudePackage])}" \
         ${env} \
-        ${customBash}
+        ${customBashScript}
     '';
 }

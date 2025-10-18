@@ -26,6 +26,7 @@ Profiles are structured configurations containing:
 - `name`: Profile identifier
 - `packages`: List of Nix packages to include
 - `env`: Environment variables
+- `preStartHooks`: Array of shell commands to execute at sandbox startup
 - `args`: Additional bubblewrap arguments (for cache binds, etc.)
 - `url`: API endpoint URL (defaults to api.anthropic.com)
 - `ips`: IP addresses for the API endpoint
@@ -48,6 +49,10 @@ The flake exports functions for creating and customizing sandboxes:
   name = "profile-name";
   packages = with pkgs; [ tool1 tool2 ];
   env = { VAR = "value"; };
+  preStartHooks = [  # optional
+    ''export SECRET="$(cat /path/to/secret)"''
+    ''echo "Setup complete"''
+  ];
   args = [ "--ro-bind-try /cache /cache" ];
   url = "api.example.com";  # optional
   ips = [ "1.2.3.4" ];      # optional
@@ -144,6 +149,10 @@ let
     name = "go-web";
     packages = with pkgs; [ air templ ];
     env = { GO_ENV = "development"; };
+    preStartHooks = [
+      ''export API_KEY="$(cat /run/secrets/go-api-key)"''
+      ''echo "Go web environment ready"''
+    ];
     args = [ "--ro-bind-try /home/$USER/.config/air /home/$USER/.config/air" ];
   };
 in {
@@ -191,6 +200,7 @@ The sandbox enforces strict isolation while maintaining development workflow:
 - Telemetry and auto-updates disabled via environment variables
 - Language-specific environment setup (PATH, cache locations, etc.)
 - Custom environment variables per profile
+- Pre-start hooks for runtime secret loading and dynamic configuration
 - Inheritance control for sensitive variables (API keys)
 
 ## Debugging and Development
@@ -202,6 +212,10 @@ myProfile = bwLib.deriveProfile bwLib.base {
   name = "my-tool";
   packages = with pkgs; [ my-tool ];
   env = { MY_TOOL_CONFIG = "/tmp/config"; };
+  preStartHooks = [
+    ''export MY_API_KEY="$(cat /run/secrets/my-tool-key)"''
+    ''echo "My-tool environment initialized"''
+  ];
   args = [ "--ro-bind-try /home/$USER/.my-tool /home/$USER/.my-tool" ];
 };
 ```
@@ -211,6 +225,8 @@ myProfile = bwLib.deriveProfile bwLib.base {
 - Bind configuration directories when tools expect them in `$HOME`
 - Set tool-specific environment variables for cache locations in `/tmp`
 - Include language servers and formatters in development profiles
+- Use pre-start hooks to load secrets at runtime from sops-nix or other secret management systems
+- Validate environment setup in pre-start hooks with conditional logic
 
 ### Testing Profiles
 ```bash

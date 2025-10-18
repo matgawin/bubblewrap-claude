@@ -43,8 +43,7 @@
       DISABLE_TELEMETRY = "1";
       ANTHROPIC_API_URL = "https://api.anthropic.com";
     };
-    args = [
-    ];
+    args = [];
     packages = basePackages;
   };
 
@@ -55,6 +54,7 @@
     env = (default.env or {}) // (profile.env or {});
     args = (default.args or []) ++ (profile.args or []);
     packages = (default.packages or []) ++ (profile.packages or []);
+    preStartHooks = (default.preStartHooks or []) ++ (profile.preStartHooks or []);
   };
   fromBase = deriveProfile base;
 in {
@@ -62,7 +62,7 @@ in {
 
   profiles = {
     bare = {
-      inherit (base) url ips env args;
+      inherit (base) url ips env args preStartHooks;
       packages = with pkgs; [
         bash
         coreutils
@@ -70,9 +70,6 @@ in {
     };
 
     nix = fromBase {
-      args = [
-        "--ro-bind /nix /nix"
-      ];
       packages = with pkgs; [
         nix
         alejandra
