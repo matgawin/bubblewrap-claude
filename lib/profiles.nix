@@ -28,7 +28,7 @@
     zip
   ];
 
-  base = rec {
+  base = {
     url = "api.anthropic.com";
     ips = [
       "160.79.104.10"
@@ -49,7 +49,7 @@
   };
 
   deriveProfile = default: profile: {
-    name = profile.name;
+    inherit (profile) name;
     url = profile.url or default.url;
     ips = profile.ips or default.ips;
     env = (default.env or {}) // (profile.env or {});
@@ -62,10 +62,7 @@ in {
 
   profiles = {
     bare = {
-      url = base.url;
-      ips = base.ips;
-      env = base.env;
-      args = base.args;
+      inherit (base) url ips env args;
       packages = with pkgs; [
         bash
         coreutils

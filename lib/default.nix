@@ -4,9 +4,9 @@
   inherit (sandbox) makeSandboxScript;
 
   mkSandbox = profile: let
+    inherit (profile) name;
     sandboxScript = makeSandboxScript profile;
     packagePath = pkgs.lib.makeBinPath profile.packages;
-    name = profile.name;
   in
     pkgs.stdenv.mkDerivation {
       inherit name;
