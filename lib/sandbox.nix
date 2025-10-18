@@ -67,6 +67,7 @@ in {
         --dir /var \
         --dir /run \
         --dir /usr/bin \
+        --dir /bin \
         --dir /etc/ssl \
         --dir /etc/ssl/certs \
         --ro-bind ${customResolvConf} /etc/resolv.conf \
@@ -74,6 +75,7 @@ in {
         --ro-bind ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-bundle.crt \
         --symlink /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt \
         --symlink ${pkgs.coreutils}/bin/env /usr/bin/env \
+        --symlink ${pkgs.bash}/bin/bash /bin/sh \
         --ro-bind /nix /nix \
         --ro-bind /etc/passwd /etc/passwd \
         --ro-bind /etc/group /etc/group \

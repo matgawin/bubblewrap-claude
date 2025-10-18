@@ -30,9 +30,7 @@
 
   base = {
     url = "api.anthropic.com";
-    ips = [
-      "160.79.104.10"
-    ];
+    ips = ["160.79.104.10"];
     env = {
       TMPDIR = "/tmp";
       SHELL = "${pkgs.bash}/bin/bash";
@@ -44,6 +42,7 @@
       ANTHROPIC_API_URL = "https://api.anthropic.com";
     };
     args = [];
+    preStartHooks = [];
     packages = basePackages;
   };
 
