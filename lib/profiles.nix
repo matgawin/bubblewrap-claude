@@ -41,9 +41,13 @@
       DISABLE_TELEMETRY = "1";
       ANTHROPIC_API_URL = "https://api.anthropic.com";
     };
-    args = [];
+    args = [
+      "--ro-bind-try /home/$USER/.config/git /home/$USER/.config/git"
+      "--ro-bind-try /home/$USER/.config/jj /home/$USER/.config/jj"
+    ];
     preStartHooks = [];
     packages = basePackages;
+    customPrompt = "";
   };
 
   deriveProfile = default: profile: {
@@ -54,6 +58,7 @@
     args = (default.args or []) ++ (profile.args or []);
     packages = (default.packages or []) ++ (profile.packages or []);
     preStartHooks = (default.preStartHooks or []) ++ (profile.preStartHooks or []);
+    customPrompt = (default.customPrompt or "") + (profile.customPrompt or "");
   };
   fromBase = deriveProfile base;
 in {
@@ -61,7 +66,7 @@ in {
 
   profiles = {
     bare = {
-      inherit (base) url ips env args preStartHooks;
+      inherit (base) url ips env args preStartHooks customPrompt;
       packages = with pkgs; [
         bash
         coreutils

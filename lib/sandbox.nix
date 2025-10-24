@@ -1,13 +1,14 @@
 {pkgs}: let
   claudePackage = pkgs.callPackage ./claude-package.nix {inherit pkgs;};
-  systemPrompt = builtins.readFile ./sandbox-prompt.txt;
+  defaultSystemPrompt = builtins.readFile ./sandbox-prompt.txt;
 
   disallowedTools = "WebSearch,WebFetch,Read(/nix/store/**),Bash(curl:*),Bash(wget:*)";
-  claudeArgs = "--dangerously-skip-permissions --disallowedTools ${pkgs.lib.escapeRegex disallowedTools} --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
   customResolvConf = pkgs.writeText "resolv.conf" ''
     nameserver 192.0.2.1
   '';
+
+  concat = first: second: first + "\n\n" + second;
 
   customBash = bashProfile:
     pkgs.writeShellScript "custom-bash" ''
@@ -27,6 +28,12 @@ in {
     env =
       pkgs.lib.concatStringsSep " "
       (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") profile.env);
+
+    packagesList = builtins.concatStringsSep "," (map (pkg: "${pkgs.lib.getName pkg}") profile.packages);
+    packagePrompt = concat defaultSystemPrompt "Only these programs are available in the sandbox: ${packagesList}";
+
+    systemPrompt = concat packagePrompt (profile.customPrompt or "");
+    claudeArgs = "--dangerously-skip-permissions --disallowedTools ${pkgs.lib.escapeRegex disallowedTools} --append-system-prompt ${pkgs.lib.escapeShellArg systemPrompt}";
 
     customBashProfile = pkgs.writeText "bash_profile" ''
       ${pkgs.lib.optionalString (profile ? preStartHooks && builtins.length profile.preStartHooks > 0) ''
