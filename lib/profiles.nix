@@ -70,6 +70,8 @@ in {
       packages = with pkgs; [
         bash
         coreutils
+        gawk
+        gnused
       ];
     };
 
