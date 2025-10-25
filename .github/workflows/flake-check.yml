@@ -1,0 +1,137 @@
+name: Flake Check
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  flake-check-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Check flake
+        run: |
+          nix flake check \
+            --system x86_64-linux \
+            --print-build-logs \
+            --show-trace
+
+      - name: Build default package
+        run: |
+          nix build .#default \
+            --system x86_64-linux \
+            --no-link \
+            --print-build-logs \
+            --show-trace
+
+      - name: Build all sandbox packages
+        run: |
+          for package in claude-sandbox-{bare,nix,go,python,rust,cpp,js,devops}; do
+            echo "Building $package..."
+            if nix build .#$package \
+              --system x86_64-linux \
+              --no-link \
+              --print-build-logs \
+              --show-trace; then
+              echo "✓ $package built successfully"
+            else
+              echo "✗ $package failed to build"
+              exit 1
+            fi
+          done
+
+      - name: Test development shell
+        run: |
+          nix build .#devShells.x86_64-linux.default \
+            --no-link \
+            --print-build-logs \
+            --show-trace
+
+      - name: Test flake outputs
+        run: |
+          nix eval .#lib.x86_64-linux \
+            --apply 'lib: builtins.attrNames lib.profiles' \
+            --print-build-logs \
+            --show-trace
+
+      - name: Summary
+        run: |
+          echo "All x86_64-linux checks passed"
+          echo "Flake validated successfully"
+          echo "All packages built without errors"
+          echo "Development shell is accessible"
+
+  flake-check-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Install QEMU for cross-compilation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Check flake (cross-compile)
+        run: |
+          nix flake check \
+            --system aarch64-linux \
+            --print-build-logs \
+            --show-trace
+
+      - name: Build default package (cross-compile)
+        run: |
+          nix build .#default \
+            --system aarch64-linux \
+            --no-link \
+            --print-build-logs \
+            --show-trace
+
+      - name: Build all sandbox packages (cross-compile)
+        run: |
+          for package in claude-sandbox-{bare,nix,go,python,rust,cpp,js,devops}; do
+            echo "Building $package for aarch64-linux..."
+            if nix build .#$package \
+              --system aarch64-linux \
+              --no-link \
+              --print-build-logs \
+              --show-trace; then
+              echo "✓ $package built successfully"
+            else
+              echo "✗ $package failed to build"
+              exit 1
+            fi
+          done
+
+      - name: Test development shell (cross-compile)
+        run: |
+          nix build .#devShells.aarch64-linux.default \
+            --no-link \
+            --print-build-logs \
+            --show-trace
+
+      - name: Test flake outputs (cross-compile)
+        run: |
+          nix eval .#lib.aarch64-linux \
+            --apply 'lib: builtins.attrNames lib.profiles' \
+            --print-build-logs \
+            --show-trace
+
+      - name: Summary
+        run: |
+          echo "All aarch64-linux checks passed"
+          echo "Flake cross-compilation validated successfully"
+          echo "All packages built for ARM64 without errors"
+          echo "Development shell is accessible"

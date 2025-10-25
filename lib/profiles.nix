@@ -169,15 +169,12 @@ in {
         "--ro-bind-try /home/$USER/.terraform.d /home/$USER/.terraform.d"
       ];
       packages = with pkgs; [
-        docker
-        docker-compose
         podman
         kubernetes-helm
         kubectl
         terraform
         pgcli
         cloudflared
-        awscli2
       ];
     };
   };
