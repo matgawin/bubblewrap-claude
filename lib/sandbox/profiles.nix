@@ -28,9 +28,8 @@
     zip
   ];
 
-  base = {
-    url = "api.anthropic.com";
-    ips = ["160.79.104.10"];
+  base = rec {
+    allowList = ["api.anthropic.com"];
     env = {
       TMPDIR = "/tmp";
       SHELL = "${pkgs.bash}/bin/bash";
@@ -52,8 +51,7 @@
 
   deriveProfile = default: profile: {
     inherit (profile) name;
-    url = profile.url or default.url;
-    ips = profile.ips or default.ips;
+    allowList = profile.allowList or default.allowList or [];
     env = (default.env or {}) // (profile.env or {});
     args = (default.args or []) ++ (profile.args or []);
     packages = (default.packages or []) ++ (profile.packages or []);
@@ -66,7 +64,7 @@ in {
 
   profiles = {
     bare = {
-      inherit (base) url ips env args preStartHooks customPrompt;
+      inherit (base) allowList env args preStartHooks customPrompt;
       packages = with pkgs; [
         bash
         coreutils

@@ -15,9 +15,10 @@ The flake defines sandboxed environments using:
 - **Profile System**: Structured configuration for language-specific toolchains
 
 Key components:
-- `lib/sandbox.nix`: Core sandbox script generation
+- `lib/sandbox/default.nix`: Core sandbox script generation
 - `lib/default.nix`: Extensible API functions (mkSandbox, mkDevShell, deriveProfile)
-- `lib/profiles.nix`: Language-specific profile definitions
+- `lib/sandbox/profiles.nix`: Language-specific profile definitions
+- `lib/proxy/`: HTTP proxy with allowlist functionality
 - `flake.nix`: Main flake configuration and package exports
 
 ## Profile-Based Architecture
@@ -28,8 +29,8 @@ Profiles are structured configurations containing:
 - `env`: Environment variables
 - `preStartHooks`: Array of shell commands to execute at sandbox startup
 - `args`: Additional bubblewrap arguments (for cache binds, etc.)
-- `url`: API endpoint URL (defaults to api.anthropic.com)
-- `ips`: IP addresses for the API endpoint
+- `allowList`: List of domains allowed through HTTP proxy
+- `customPrompt`: Custom system prompt for Claude Code
 
 Base profile (`base`) provides core utilities, and other profiles extend it using `deriveProfile`.
 
@@ -54,8 +55,8 @@ The flake exports functions for creating and customizing sandboxes:
     ''echo "Setup complete"''
   ];
   args = [ "--ro-bind-try /cache /cache" ];
-  url = "api.example.com";  # optional
-  ips = [ "1.2.3.4" ];      # optional
+  allowList = ["api.example.com" "cdn.example.com"];  # optional
+  customPrompt = "You are an expert in...";  # optional
 }
 ```
 
@@ -191,10 +192,12 @@ The sandbox enforces strict isolation while maintaining development workflow:
 - Host configuration: `~/.claude.json` mounted if present
 
 ### Network Configuration
-- Custom `/etc/hosts` with Anthropic API endpoints
+- Custom `/etc/hosts`
 - Controlled DNS resolution via custom `resolv.conf`
+- HTTP proxy with domain allowlist filtering (port 56789)
 - Network access enabled for API calls while maintaining filesystem isolation
 - Profile-specific API endpoint configuration
+- All non-whitelisted domains blocked with 403 response
 
 ### Environment Control
 - Telemetry and auto-updates disabled via environment variables
@@ -202,6 +205,7 @@ The sandbox enforces strict isolation while maintaining development workflow:
 - Custom environment variables per profile
 - Pre-start hooks for runtime secret loading and dynamic configuration
 - Inheritance control for sensitive variables (API keys)
+- Custom system prompts via profile configuration
 
 ## Debugging and Development
 
@@ -217,6 +221,8 @@ myProfile = bwLib.deriveProfile bwLib.base {
     ''echo "My-tool environment initialized"''
   ];
   args = [ "--ro-bind-try /home/$USER/.my-tool /home/$USER/.my-tool" ];
+  allowList = ["api.mytool.com" "cdn.mytool.com"];
+  customPrompt = "You are an expert in my-tool development...";
 };
 ```
 

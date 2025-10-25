@@ -8,23 +8,20 @@
     nameserver 192.0.2.1
   '';
 
+  customHosts = pkgs.writeText "hosts" ''
+    127.0.0.1 localhost
+    ::1 localhost ip6-localhost ip6-loopback
+  '';
+
   concat = first: second: first + "\n\n" + second;
 
   customBash = bashProfile:
     pkgs.writeShellScript "custom-bash" ''
       exec ${pkgs.bash}/bin/bash --rcfile ${bashProfile} -i
     '';
-
-  mkCustomHosts = url: ips:
-    pkgs.writeText "hosts" ''
-      127.0.0.1 localhost
-      ::1 localhost ip6-localhost ip6-loopback
-      ${builtins.concatStringsSep "\n" (map (ip: "${ip} ${url}") ips)}
-    '';
 in {
   makeSandboxScript = profile: let
     args = builtins.concatStringsSep " " profile.args;
-    customHosts = mkCustomHosts profile.url profile.ips;
     env =
       pkgs.lib.concatStringsSep " "
       (pkgs.lib.mapAttrsToList (k: v: "--setenv ${k} ${pkgs.lib.escapeShellArg v}") profile.env);
@@ -44,11 +41,11 @@ in {
 
       alias claude="claude ${claudeArgs}"
       claude
+      exit
     '';
 
     customBashScript = customBash customBashProfile;
-  in
-    pkgs.writeShellScript "claude-sandbox" ''
+    sandbox = pkgs.writeShellScript "claude-sandbox" ''
       #!/usr/bin/env bash
       set -euo pipefail
 
@@ -97,4 +94,12 @@ in {
         ${env} \
         ${customBashScript}
     '';
+
+    claudeWithProxy = import ../proxy {
+      inherit pkgs sandbox;
+      inherit (profile) allowList;
+      port = "56789";
+    };
+  in
+    claudeWithProxy;
 }

@@ -89,8 +89,8 @@ bwLib.mkSandbox {
     ''echo "Setup complete"''
   ];
   args = [ "--ro-bind /path /path" ];  # optional bubblewrap arguments
-  url = "api.example.com";  # optional API URL
-  ips = [ "1.2.3.4" ];  # optional IP addresses for URL
+  allowList = ["api.example.com" "cdn.example.com"];  # optional proxy allowlist
+  customPrompt = "You are an expert in...";  # optional system prompt
 }
 ```
 
@@ -130,6 +130,8 @@ bwLib.deriveProfile baseProfile {
     ''export API_KEY="$(cat /run/secrets/key)"''
   ];  # inherits parent hooks and adds these
   args = [ "--extra-arg" ];  # additional bubblewrap arguments
+  allowList = ["api.example.com"];  # additional allowed domains
+  customPrompt = "You are an expert in...";  # custom system prompt
 }
 ```
 
@@ -228,7 +230,7 @@ in {
 
 - **Process isolation**: Complete namespace isolation with `--unshare-all`
 - **Filesystem restrictions**: Only project directory and `/tmp` are writable
-- **Network access**: Controlled via custom `/etc/hosts` and DNS configuration
+- **Network access**: Controlled via HTTP proxy with domain allowlist filtering
 - **Configuration persistence**: Host `~/.claude.json` automatically mounted if present
 - **Cache management**: Language-specific caches mounted read-only where appropriate
 - **Privilege separation**: Runs as host user with restricted capabilities
@@ -238,14 +240,33 @@ in {
 
 ### Custom Hosts and Network
 
-Profiles automatically configure network access for Claude Code's API. You can customize this:
+Profiles automatically configure network access for Claude Code's API. HTTP proxy filtering is applied to restrict access to allowed domains only:
 
 ```nix
 bwLib.mkSandbox {
   name = "custom-network";
   packages = with pkgs; [ curl ];
-  url = "custom-api.example.com";
-  ips = [ "192.168.1.100" "10.0.0.50" ];
+  allowList = [
+    "custom-api.example.com"
+    "cdn.custom-api.example.com"
+    "github.com"
+  ];
+}
+```
+
+### Custom System Prompts
+
+Configure Claude Code's behavior with custom system prompts:
+
+```nix
+bwLib.mkSandbox {
+  name = "specialized-assistant";
+  packages = with pkgs; [ python3 ];
+  customPrompt = ''
+    You are an expert Python developer specializing in data science.
+    Always provide clean, well-documented code with type hints.
+    Focus on pandas, numpy, and matplotlib usage.
+  '';
 }
 ```
 

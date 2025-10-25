@@ -1,6 +1,6 @@
 {pkgs}: let
-  sandbox = import ./sandbox.nix {inherit pkgs;};
-  profiles = import ./profiles.nix {inherit pkgs;};
+  sandbox = import ./sandbox {inherit pkgs;};
+  profiles = import ./sandbox/profiles.nix {inherit pkgs;};
   inherit (sandbox) makeSandboxScript;
 
   mkSandbox = profile: let
