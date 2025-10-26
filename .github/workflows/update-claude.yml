@@ -25,7 +25,7 @@ jobs:
         id: update
         run: |
           LATEST_VERSION=$(curl -s https://registry.npmjs.org/@anthropic-ai/claude-code/latest | jq -r '.version')
-          CURRENT_VERSION=$(grep 'version = ' lib/claude-package.nix | sed 's/.*"\(.*\)".*/\1/')
+          CURRENT_VERSION=$(grep 'version = ' lib/sandbox/claude-package.nix | sed 's/.*"\(.*\)".*/\1/')
 
           echo "Current version: $CURRENT_VERSION"
           echo "Latest version: $LATEST_VERSION"
@@ -42,8 +42,8 @@ jobs:
 
           echo "New hash: $NEW_HASH_SRI"
 
-          sed -i "s/version = \".*\";/version = \"$LATEST_VERSION\";/" lib/claude-package.nix
-          sed -i "s|hash = \".*\";|hash = \"$NEW_HASH_SRI\";|" lib/claude-package.nix
+          sed -i "s/version = \".*\";/version = \"$LATEST_VERSION\";/" lib/sandbox/claude-package.nix
+          sed -i "s|hash = \".*\";|hash = \"$NEW_HASH_SRI\";|" lib/sandbox/claude-package.nix
 
           echo "updated=true" >> $GITHUB_OUTPUT
           echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
