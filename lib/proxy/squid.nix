@@ -1,7 +1,6 @@
 {
   pkgs,
   allowList ? [],
-  port ? "56789",
   ...
 }: let
   domainAcls = builtins.concatStringsSep "\n" (
@@ -13,10 +12,7 @@
   );
 
   squidConfig = ''
-    http_port 127.0.0.1:${port}
-
     # Use writable directories
-    pid_filename /tmp/squid.pid
     cache_dir null /tmp
     coredump_dir /tmp
 

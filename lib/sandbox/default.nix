@@ -98,7 +98,6 @@ in {
     claudeWithProxy = import ../proxy {
       inherit pkgs sandbox;
       inherit (profile) allowList;
-      port = "56789";
     };
   in
     claudeWithProxy;
