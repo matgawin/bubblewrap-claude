@@ -5,7 +5,7 @@
   port,
   ...
 }: let
-  caddyfile = import ./caddyfile.nix {
+  squidConf = import ./squid.nix {
     inherit pkgs allowList port;
   };
 in
@@ -25,7 +25,7 @@ in
     trap cleanup EXIT INT TERM
 
     echo "Starting proxy on port ${port}"
-    2>/dev/null 1>&2 ${pkgs.caddy}/bin/caddy run --config "${caddyfile}" --adapter caddyfile &
+    ${pkgs.squid}/bin/squid -d -1 -N -f ${squidConf} &
     PROXY_PID=$!
 
     for i in {1..30}; do
