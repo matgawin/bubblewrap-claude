@@ -74,6 +74,9 @@ in {
     };
 
     nix = fromBase {
+      preStartHooks = [
+        "alias nix=\"nix --extra-experimental-features 'nix-command flakes'\""
+      ];
       packages = with pkgs; [
         nix
         alejandra
