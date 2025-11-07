@@ -1,8 +1,8 @@
 {pkgs}: let
-  version = "2.0.34";
+  version = "2.0.35";
   claudeCodeTarball = pkgs.fetchurl {
     url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${version}.tgz";
-    hash = "sha256-hPHoGIR/5N/vzCNRONiakdL2C864zyouYqCnNxY6oRs=";
+    hash = "sha256-WTbUW++l0ZyfD5OTM90e+lKIWAGCYJ7vDmDBXN0TtOw=";
   };
 in
   pkgs.stdenv.mkDerivation {
