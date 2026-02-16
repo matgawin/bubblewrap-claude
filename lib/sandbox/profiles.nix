@@ -28,14 +28,19 @@
     zip
   ];
 
-  base = rec {
-    allowList = ["api.anthropic.com"];
+  base = {
+    allowList = [
+      "api.anthropic.com"
+      "platform.claude.com"
+    ];
     env = {
       TMPDIR = "/tmp";
       SHELL = "${pkgs.bash}/bin/bash";
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
       DISABLE_AUTOUPDATER = "1";
       DISABLE_ERROR_REPORTING = "1";
+      DISABLE_BUG_COMMAND = "1";
+      DISABLE_INSTALLATION_CHECKS = "1";
       DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
       DISABLE_TELEMETRY = "1";
       ANTHROPIC_API_URL = "https://api.anthropic.com";

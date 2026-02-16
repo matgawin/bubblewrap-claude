@@ -18,29 +18,31 @@
 
     # Access control lists
     acl SSL_ports port 443
+    acl Safe_ports port 80
+    acl Safe_ports port 443
     acl CONNECT method CONNECT
 
     # Allowed domains
     ${domainAcls}
 
-    # Access rules
-    # Allow CONNECT to SSL ports for allowed domains
+    # Access rules - allow access to whitelisted domains
     ${allowRules}
 
-    # Deny CONNECT to other ports
-    http_access deny CONNECT !SSL_ports
-
-    # Deny access to all other destinations
+    # Deny all other access
     http_access deny all
 
     # Disable caching
     cache deny all
 
     # Logging
-    access_log stdio:/tmp/squid-access.log
-    cache_log /tmp/squid-cache.log
+    access_log stdio:/tmp/squid-access.log squid
+    cache_log stdio:/tmp/squid-cache.log
 
-    # Don't reveal proxy identity (suppress warnings)
+    # Custom detailed log format showing full URLs
+    logformat detailed %ts.%03tu %6tr %>a %Ss/%03>Hs %<st %rm %ru %[un %Sh/%<a %mt
+    access_log stdio:/tmp/squid-detailed.log detailed
+
+    # Don't reveal proxy identity
     forwarded_for delete
 
     # Performance tuning

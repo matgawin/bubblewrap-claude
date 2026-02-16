@@ -21,11 +21,15 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Check for new version and update
         id: update
         run: |
-          LATEST_VERSION=$(curl -s https://registry.npmjs.org/@anthropic-ai/claude-code/latest | jq -r '.version')
-          CURRENT_VERSION=$(grep 'version = ' lib/sandbox/claude-package.nix | sed 's/.*"\(.*\)".*/\1/')
+          GCS_BUCKET="https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases"
+          LATEST_VERSION=$(curl -fsSL "$GCS_BUCKET/latest")
+          CURRENT_VERSION=$(grep 'version = ' lib/sandbox/claude-package.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
           echo "Current version: $CURRENT_VERSION"
           echo "Latest version: $LATEST_VERSION"
@@ -36,14 +40,21 @@ jobs:
             exit 0
           fi
 
-          URL="https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${LATEST_VERSION}.tgz"
-          NEW_HASH=$(nix-prefetch-url --type sha256 "$URL")
-          NEW_HASH_SRI=$(nix hash convert --hash-algo sha256 --to sri "$NEW_HASH")
+          MANIFEST=$(curl -fsSL "$GCS_BUCKET/$LATEST_VERSION/manifest.json")
 
-          echo "New hash: $NEW_HASH_SRI"
+          LINUX_X64_SHA=$(echo "$MANIFEST" | jq -r '.platforms."linux-x64".checksum')
+          LINUX_ARM64_SHA=$(echo "$MANIFEST" | jq -r '.platforms."linux-arm64".checksum')
+
+          echo "Linux x64 checksum: $LINUX_X64_SHA"
+          echo "Linux arm64 checksum: $LINUX_ARM64_SHA"
+
+          LINUX_X64_SRI=$(nix hash convert --hash-algo sha256 --to sri "$LINUX_X64_SHA")
+          LINUX_ARM64_SRI=$(nix hash convert --hash-algo sha256 --to sri "$LINUX_ARM64_SHA")
 
           sed -i "s/version = \".*\";/version = \"$LATEST_VERSION\";/" lib/sandbox/claude-package.nix
-          sed -i "s|hash = \".*\";|hash = \"$NEW_HASH_SRI\";|" lib/sandbox/claude-package.nix
+
+          sed -i "s|\"linux-x64\" = \"sha256-.*\";|\"linux-x64\" = \"$LINUX_X64_SRI\";|" lib/sandbox/claude-package.nix
+          sed -i "s|\"linux-arm64\" = \"sha256-.*\";|\"linux-arm64\" = \"$LINUX_ARM64_SRI\";|" lib/sandbox/claude-package.nix
 
           echo "updated=true" >> $GITHUB_OUTPUT
           echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
@@ -78,8 +89,10 @@ jobs:
             Automated update of Claude Code package to version ${{ steps.update.outputs.version }}.
 
             ## Changes
-            - Updated version in `lib/claude-package.nix`
-            - Updated package hash
+            - Updated version in `lib/sandbox/claude-package.nix`
+            - Updated package hashes for all platforms:
+              - linux-x64
+              - linux-arm64
 
             ## Testing
             ${{ steps.build_status.outputs.status }}
